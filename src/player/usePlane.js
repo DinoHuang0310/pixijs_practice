@@ -1,40 +1,43 @@
-import { AnimatedSprite, Assets, Texture } from 'pixi.js';
+import { AnimatedSprite } from 'pixi.js';
 
 import game from '../game';
+import assetsLoader from '../assetsLoader'
 import useKeyboard from '../composables/useKeyboard'
 import useContain from '../composables/useContain'
 import useShoot from '../composables/useShoot'
+import useHitTestRectangle from '../composables/useHitTestRectangle'
 
-export default async () => {
+export default () => {
   const status = {
     level: 1,
     moveSpeed: 8,
     rotateSpeed: 1,
-    skill: {
-      active: null,
-      skills: [],
-    },
+    point: 0,
+    activeSkill: null,
+    skills: [{
+      id: 'aoe01',
+      name: '廣域雷擊',
+      cooldown: 20,
+      execute: () => {},
+    }],
     buff: [],
     debuff: [],
+    levelUp: () => {
+      status.level ++
+    },
+    pointPlus: (point) => {
+      status.point += point
+      console.log(status.point)
+    },
   }
 
-  const { app } = game();
+  const { app, gameStatus } = game();
 
-  // Load the animation sprite sheet
-  // const url = new URL('./fighter.json', import.meta.url).href
-  await Assets.load('./fighter.json');
-
-  // Create an array of textures from the sprite sheet
-  const frames = [];
-  for (let i = 0; i < 30; i++) {
-    const val = i < 10 ? `0${i}` : i;
-
-    // Magically works since the spritesheet was loaded with the pixi loader
-    frames.push(Texture.from(`rollSequence00${val}.png`));
-  }
+  const { planeFrames: frames } = assetsLoader
 
   // Create an AnimatedSprite (brings back memories from the days of Flash, right ?)
   let plane = new AnimatedSprite(frames);
+  plane.status = status
 
   const planeScale = 0.08;
   const targetWidth = app.screen.width * planeScale;
@@ -153,12 +156,23 @@ export default async () => {
       height: app.screen.height + plane.height / 2
     });
     // console.log("explorer位置" + plane.x + "," + plane.y)
+
+    const { enemies, gameOver } = gameStatus
+    for (let j = enemies.length - 1; j >= 0; j--) {
+      const enemy = enemies[j];
+      if (useHitTestRectangle(enemy.body, plane)) {
+        app.ticker.remove(animate);
+        plane.status.rotateSpeed = 0;
+        gameOver()
+        
+        break;
+      }
+    }
   }
 
   // render
   app.ticker.add(animate);
 
-  plane.status = status
   plane.remove = () => {
     app.ticker.remove(animate);
     // plane.destroy()

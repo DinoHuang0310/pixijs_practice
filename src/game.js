@@ -1,14 +1,33 @@
 import { Application, Text, TextStyle } from 'pixi.js';
 
+import assetsLoader from './assetsLoader'
 import usePlane from './player/usePlane'
 import useEnemy from './enemy/useEnemy'
 import useKeyboard from './composables/useKeyboard'
+import useSingleAnimation from './composables/useSingleAnimation'
 
 // Create a new application
 let app = null;
 const gameStatus = {
+  player: null,
   gameTimer: 0,
   enemies: [],
+  gameLoop: null,
+  isGameOver: false,
+  gameOver: () => {
+    app.ticker.remove(gameStatus.gameLoop);
+    gameStatus.isGameOver = true;
+    
+    for (let j = gameStatus.enemies.length - 1; j >= 0; j--) {
+      gameStatus.enemies[j].remove()
+    }
+
+    const { explosion } = useSingleAnimation()
+    const { x, y, width, height } = gameStatus.player.getBounds()
+    explosion({x: x + width / 2, y: y + height / 2})
+    app.stage.removeChild(gameStatus.player);
+    
+  }
 }
 
 export default () => {
@@ -22,6 +41,8 @@ export default () => {
 
   const initGame = async () => {
     if (app) return;
+    
+    await assetsLoader.preload()
 
     let lastTime = performance.now();
     app = new Application();
@@ -32,16 +53,12 @@ export default () => {
     // Append the application canvas to the document body
     document.body.appendChild(app.canvas);
 
-    const player = await usePlane();
-    app.stage.addChild(player);
+    gameStatus.player = usePlane();
+    app.stage.addChild(gameStatus.player);
 
-    const { createEnemy } = await useEnemy()
+    const { createEnemy } = useEnemy()
+    const enemyInterval = 1
     // createEnemy()
-    // const setEnemy = () => {
-    //   createEnemy()
-    //   setTimeout(setEnemy, 1000);
-    // }
-    // setEnemy()
 
     // 顯示用文字
     const style = new TextStyle({
@@ -58,7 +75,7 @@ export default () => {
 
     // render
     let lastShownTime = 0;
-    app.ticker.add(() => {
+    const gameLoop = () => {
       const now = performance.now();
       const deltaSec = (now - lastTime) / 1000;
       lastTime = now;
@@ -68,13 +85,16 @@ export default () => {
 
       const currentTime = Math.floor(gameStatus.gameTimer);
       if (currentTime !== lastShownTime) {
-        createEnemy()
+        if (lastShownTime % enemyInterval === 0) createEnemy();
+
         lastShownTime = currentTime;
         timerText.text = `Time: ${currentTime}`;
       }
-    });
+    }
+    gameStatus.gameLoop = gameLoop;
+    app.ticker.add(gameLoop);
 
-    // test(player)
+    // test(gameStatus.player)
   }
 
   return {
