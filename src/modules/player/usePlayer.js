@@ -1,37 +1,41 @@
 import { AnimatedSprite } from 'pixi.js';
 
-import game from '../game';
-import assetsLoader from '../assetsLoader'
-import useKeyboard from '../composables/useKeyboard'
-import useContain from '../composables/useContain'
-import useShoot from '../composables/useShoot'
-import useHitTestRectangle from '../composables/useHitTestRectangle'
+import game from '../../game';
+import assetsLoader from '../../assetsLoader'
+import useKeyboard from '../../composables/useKeyboard'
+import useContain from '../../composables/useContain'
+import useShoot from '../../composables/useShoot'
+import useHitTestRectangle from '../../composables/useHitTestRectangle'
+import useSkill from './skills'
+import useDashboard from '../dashboard/useDashboard';
 
 export default () => {
+  const { app, gameStatus } = game();
+  const allSkill = useSkill()
+  const { initSkillCooldown } = useDashboard()
+  
   const status = {
-    level: 1,
+    // level: 1,
     moveSpeed: 8,
     rotateSpeed: 1,
     point: 0,
+    lastSkillTime: null,
     activeSkill: null,
-    skills: [{
-      id: 'aoe01',
-      name: '廣域雷擊',
-      cooldown: 20,
-      execute: () => {},
-    }],
+    skills: [],
     buff: [],
     debuff: [],
-    levelUp: () => {
-      status.level ++
-    },
+    // levelUp: () => {
+    //   status.level ++
+    // },
     pointPlus: (point) => {
       status.point += point
-      console.log(status.point)
+      if (status.point >= 1) {
+        const targetSkill = allSkill[0]
+        status.skills.push({ ...targetSkill, run: initSkillCooldown(targetSkill) })
+        status.activeSkill = targetSkill.id
+      }
     },
   }
-
-  const { app, gameStatus } = game();
 
   const { planeFrames: frames } = assetsLoader
 
@@ -113,8 +117,28 @@ export default () => {
     }
   };
 
+  const skill = useKeyboard(81);
+  skill.press = function() {
+    const { status } = plane
+    if (!status.skills.length) {
+      console.log('no skill')
+      return;
+    }
+
+    const useSkill = status.skills.find(i => i.id === status.activeSkill)
+    const now = gameStatus.gameTimer
+    if (!status.lastSkillTime || now - status.lastSkillTime > useSkill.cooldown) {
+      status.lastSkillTime = now
+      useSkill.execute();
+      useSkill.run()
+    } else {
+      const difference = Math.abs(useSkill.cooldown - (now - status.lastSkillTime))
+      console.warn(`技能冷卻中, 還差 ${Math.floor(difference) + 1}秒`)
+    }
+  };
+
   // 射擊
-  const { fire, stopFire } = useShoot(plane);
+  const { fire } = useShoot(plane);
   const shot = useKeyboard(32);
   shot.press = fire
   // shot.release = function() {

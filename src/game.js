@@ -1,10 +1,10 @@
 import { Application, Text, TextStyle } from 'pixi.js';
 
 import assetsLoader from './assetsLoader'
-import usePlane from './player/usePlane'
-import useEnemy from './enemy/useEnemy'
-import useKeyboard from './composables/useKeyboard'
-import useSingleAnimation from './composables/useSingleAnimation'
+import usePlayer from './modules/player/usePlayer'
+import useEnemy from './modules/enemy/useEnemy'
+import useAnimation from './modules/animations/useAnimation'
+// import useDashboard from './modules/dashboard/useDashboard'
 
 // Create a new application
 let app = null;
@@ -22,29 +22,19 @@ const gameStatus = {
       gameStatus.enemies[j].remove()
     }
 
-    const { explosion } = useSingleAnimation()
+    const { explosion } = useAnimation()
     const { x, y, width, height } = gameStatus.player.getBounds()
     explosion({x: x + width / 2, y: y + height / 2})
     app.stage.removeChild(gameStatus.player);
-    
-  }
+  },
 }
 
 export default () => {
-  const test = (player) => {
-    const deleteTest = useKeyboard(46)
-    deleteTest.press = () => {
-      app.stage.removeChild(player);
-      player.remove()
-    }
-  }
-
   const initGame = async () => {
     if (app) return;
     
     await assetsLoader.preload()
 
-    let lastTime = performance.now();
     app = new Application();
 
     // Initialize the application
@@ -53,7 +43,7 @@ export default () => {
     // Append the application canvas to the document body
     document.body.appendChild(app.canvas);
 
-    gameStatus.player = usePlane();
+    gameStatus.player = usePlayer();
     app.stage.addChild(gameStatus.player);
 
     const { createEnemy } = useEnemy()
@@ -73,19 +63,27 @@ export default () => {
     timerText.y = 10;
     app.stage.addChild(timerText);
 
+    // dashboasd
+    // useDashboard()
+
     // render
     let lastShownTime = 0;
-    const gameLoop = () => {
-      const now = performance.now();
-      const deltaSec = (now - lastTime) / 1000;
-      lastTime = now;
+    const gameLoop = ({ deltaTime }) => {
+      const { FPS } = app.ticker
+      if (FPS < 50) console.warn('FPS: ' + FPS.toFixed(1));
+      // const now = performance.now();
+      // const deltaSec = (now - lastTime) / 1000;
+      // lastTime = now;
 
-      gameStatus.gameTimer += deltaSec;
+      // gameStatus.gameTimer += deltaSec;
       // console.log(gameStatus.gameTimer)
+
+      const deltaSec = deltaTime / 60; // 以 60FPS 為基準，轉成秒
+      gameStatus.gameTimer += deltaSec;
 
       const currentTime = Math.floor(gameStatus.gameTimer);
       if (currentTime !== lastShownTime) {
-        if (lastShownTime % enemyInterval === 0) createEnemy();
+        if (currentTime % enemyInterval === 0) createEnemy();
 
         lastShownTime = currentTime;
         timerText.text = `Time: ${currentTime}`;
@@ -93,8 +91,6 @@ export default () => {
     }
     gameStatus.gameLoop = gameLoop;
     app.ticker.add(gameLoop);
-
-    // test(gameStatus.player)
   }
 
   return {

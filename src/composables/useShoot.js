@@ -7,7 +7,10 @@ import useHitTestRectangle from './useHitTestRectangle'
 export default (parent) => {
   const { app, gameStatus } = game();
 
-  const createAmmo = (x, y) => {
+  const fire = () => {
+    const x = parent.x
+    const y = parent.y - parent.height / 2
+    
     const bullet = new Graphics().circle(0, 0, 4).fill(0xffffff);
     bullet.x = x;
     bullet.y = y;
@@ -20,7 +23,8 @@ export default (parent) => {
       
       // 超出畫面
       if (bullet.y < 0) {
-        app.stage.removeChild(bullet);
+        // app.stage.removeChild(bullet);
+        bullet.destroy({ children: true, texture: false, baseTexture: false })
         app.ticker.remove(animate);
         return
       }
@@ -30,11 +34,12 @@ export default (parent) => {
         const enemy = enemies[j];
         
         if (useHitTestRectangle(enemy.body, bullet)) {
-          app.stage.removeChild(bullet);
+          // app.stage.removeChild(bullet);
+          bullet.destroy({ children: true, texture: false, baseTexture: false })
           app.ticker.remove(animate);
           
           parent.status.pointPlus(enemy.point) // 計分
-          enemy.remove() // 移除敵人
+          enemy.remove(true) // 移除敵人
           break;
         }
       }
@@ -43,16 +48,7 @@ export default (parent) => {
     app.ticker.add(animate)
   }
 
-  const fire = () => {
-    createAmmo(parent.x, parent.y - parent.height / 2)
-  }
-
-  const stopFire = () => {
-
-  }
-
   return {
     fire,
-    stopFire,
   };
 }

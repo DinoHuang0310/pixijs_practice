@@ -33,6 +33,9 @@ const loader = {
       loader.explosionTextures.push(texture);
     }
 
+    // icon
+    await Assets.load(new URL('./assets/skills/aoe01.jpg', import.meta.url).href)
+    
     isLoaded = true;
   }
 }
