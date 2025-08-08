@@ -1,4 +1,4 @@
-import { AnimatedSprite } from 'pixi.js';
+import { AnimatedSprite, Graphics } from 'pixi.js';
 
 import game from '../../game';
 import assetsLoader from '../../assetsLoader'
@@ -15,37 +15,57 @@ export default () => {
   const { initSkillCooldown } = useDashboard()
   
   const status = {
-    // level: 1,
     moveSpeed: 8,
+    isTriggerSpeedup: false,
     rotateSpeed: 1,
     point: 0,
     lastSkillTime: null,
-    activeSkill: null,
+    activeSkillId: null,
     skills: [],
     buff: [],
     debuff: [],
-    // levelUp: () => {
-    //   status.level ++
-    // },
+    energy: 100,
+    setEnergy: (val) => {
+      const { energy } = status
+      if (energy + val < 0) return
+      status.energy = Math.min(energy + val, 100)
+    },
     pointPlus: (point) => {
       status.point += point
-      if (status.point >= 1) {
+      if (status.point === 1) {
         const targetSkill = allSkill[0]
-        status.skills.push({ ...targetSkill, run: initSkillCooldown(targetSkill) })
-        status.activeSkill = targetSkill.id
+
+        // 註冊技能冷卻icon
+        const skillDashboard = initSkillCooldown(targetSkill);
+        // 擴充原本的execute方法, 加上額外行為
+        status.skills.push({
+          ...targetSkill,
+          execute: () => {
+            const { energyCost } = targetSkill
+            if (status.energy < energyCost) return;
+
+            status.setEnergy(energyCost * -1)
+            status.lastSkillTime = gameStatus.gameTimer; // 記錄施放時間
+            skillDashboard.start() // 觸發dashboard動畫
+
+            // 執行原本技能的效果
+            targetSkill.execute();
+          },
+        });
+
+        status.activeSkillId = targetSkill.id
       }
     },
   }
 
   const { planeFrames: frames } = assetsLoader
 
-  // Create an AnimatedSprite (brings back memories from the days of Flash, right ?)
   let plane = new AnimatedSprite(frames);
   plane.status = status
 
   const planeScale = 0.08;
   const targetWidth = app.screen.width * planeScale;
-  plane.scale.set(targetWidth / plane.width); // 等比縮放，不變形
+  plane.scale.set(targetWidth / plane.width); // 等比縮放, 不變形
   // console.log(plane.width, plane.height)
 
   plane.x = app.screen.width / 2;
@@ -56,10 +76,30 @@ export default () => {
   // plane.interactive = true; // 允許點擊
   plane.loop = true;
 
+  const energyBar = new Graphics()
+  app.stage.addChild(energyBar);
+
   // Capture the keyboard arrow keys
-  const left = useKeyboard(65);
+  const keyboardEvents = {
+    left: useKeyboard(65),
+    up: useKeyboard(87),
+    right: useKeyboard(68),
+    down: useKeyboard(83),
+    skill: useKeyboard(81),
+    shot: useKeyboard(32),
+    speedUp: useKeyboard(16),
+  }
+  const computedMoveSpeed = () => {
+    const { buff, debuff, moveSpeed } = status;
+
+    const totalModifier = [...buff, ...debuff]
+      .filter(i => i.type === 'speed')
+      .reduce((sum, i) => sum + (i.value || 0), 0);
+    return moveSpeed + totalModifier;
+  }
+  const {left, up, right, down, skill, shot, speedUp} = keyboardEvents
   left.press = function() {
-    plane.vx = status.moveSpeed * -1;
+    plane.vx = computedMoveSpeed() * -1;
     plane.vy = 0;
 
     currentKey = this.code;
@@ -76,9 +116,8 @@ export default () => {
     }
   };
 
-  const up = useKeyboard(87);
   up.press = function() {
-    plane.vy = status.moveSpeed * -1;
+    plane.vy = computedMoveSpeed() * -1;
     plane.vx = 0;
   };
   up.release = function() {
@@ -87,9 +126,8 @@ export default () => {
     }
   };
 
-  const right = useKeyboard(68);
   right.press = function() {
-    plane.vx = status.moveSpeed;
+    plane.vx = computedMoveSpeed();
     plane.vy = 0;
 
     currentKey = this.code;
@@ -106,9 +144,8 @@ export default () => {
     }
   };
 
-  const down = useKeyboard(83);
   down.press = function() {
-    plane.vy = status.moveSpeed;
+    plane.vy = computedMoveSpeed();
     plane.vx = 0;
   };
   down.release = function() {
@@ -117,7 +154,6 @@ export default () => {
     }
   };
 
-  const skill = useKeyboard(81);
   skill.press = function() {
     const { status } = plane
     if (!status.skills.length) {
@@ -125,21 +161,18 @@ export default () => {
       return;
     }
 
-    const useSkill = status.skills.find(i => i.id === status.activeSkill)
+    const activeSkill = status.skills.find(i => i.id === status.activeSkillId)
     const now = gameStatus.gameTimer
-    if (!status.lastSkillTime || now - status.lastSkillTime > useSkill.cooldown) {
-      status.lastSkillTime = now
-      useSkill.execute();
-      useSkill.run()
+    if (!status.lastSkillTime || now - status.lastSkillTime > activeSkill.cooldown) {
+      activeSkill.execute();
     } else {
-      const difference = Math.abs(useSkill.cooldown - (now - status.lastSkillTime))
+      const difference = Math.abs(activeSkill.cooldown - (now - status.lastSkillTime))
       console.warn(`技能冷卻中, 還差 ${Math.floor(difference) + 1}秒`)
     }
   };
 
   // 射擊
   const { fire } = useShoot(plane);
-  const shot = useKeyboard(32);
   shot.press = fire
   // shot.release = function() {
   //   console.log('stop')
@@ -161,6 +194,28 @@ export default () => {
     }
   };
 
+  const updateSpeed = () => {
+    if (currentKey === right.code) plane.vx = computedMoveSpeed();
+    if (currentKey === left.code) plane.vx = -computedMoveSpeed();
+    if (currentKey === up.code) plane.vy = -computedMoveSpeed();
+    if (currentKey === down.code) plane.vy = computedMoveSpeed();
+  };
+  speedUp.press = () => {
+    if (status.energy < 1) return;
+    status.buff.push({ type: 'speed', value: 5, id: 'shiftSpeedup' })
+    status.isTriggerSpeedup = true;
+    updateSpeed()
+  }
+  speedUp.release = () => {
+    // console.log('speedUp release')
+    const target = status.buff.findIndex(i => i.id === 'shiftSpeedup')
+    if (target !== -1) {
+      status.buff.splice(target, 1)
+      status.isTriggerSpeedup = false;
+      updateSpeed()
+    }
+  }
+
   // const { fire } = useShoot(plane);
   // const autoFire = () => {
   //   if (plane) {
@@ -170,7 +225,8 @@ export default () => {
   // }
   // autoFire()
 
-  const animate = () => {
+  let speedupElapsed = 0;
+  const animate = ({ deltaTime }) => {
     plane.x += plane.vx;
     plane.y += plane.vy;
     useContain(plane, {
@@ -181,12 +237,42 @@ export default () => {
     });
     // console.log("explorer位置" + plane.x + "," + plane.y)
 
+    if (status.isTriggerSpeedup) {
+      const tickRate = 12; // 每秒扣幾次 energy
+      const deltaSec = deltaTime / 60;
+      speedupElapsed += deltaSec;
+
+      if (speedupElapsed >= 1 / tickRate) {
+        // 檢查當前 energy 是否足夠
+        if (status.energy > 0) {
+          status.setEnergy(-1);
+          speedupElapsed -= 1 / tickRate;
+        } else {
+          speedUp.release()
+        }
+      }
+    } else {
+      speedupElapsed = 0; // 停止時重置累積時間
+    }
+
+    // 能量條
+    const { energy } = status;
+    const ratio = energy / 100;
+    const maxWidth = 100
+    const startX = plane.x - maxWidth / 2
+    const startY = plane.y + plane.height / 2
+    energyBar.clear()
+    energyBar.rect(startX, startY, maxWidth, 5);
+    energyBar.fill(0x000);
+    energyBar.rect(startX, startY, maxWidth * ratio, 5);
+    energyBar.fill(0x00ccff);
+
     const { enemies, gameOver } = gameStatus
     for (let j = enemies.length - 1; j >= 0; j--) {
       const enemy = enemies[j];
       if (useHitTestRectangle(enemy.body, plane)) {
         app.ticker.remove(animate);
-        plane.status.rotateSpeed = 0;
+        status.rotateSpeed = 0;
         gameOver()
         
         break;
@@ -194,12 +280,19 @@ export default () => {
     }
   }
 
+  app.stage.addChild(plane);
+
   // render
   app.ticker.add(animate);
 
   plane.remove = () => {
     app.ticker.remove(animate);
-    // plane.destroy()
+    Object.values(keyboardEvents).forEach(k => {
+      if (typeof k.unbind === 'function') {
+        k.unbind()
+      }
+    });
+    plane.destroy()
     plane = null
   }
   return plane;

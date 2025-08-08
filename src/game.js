@@ -13,19 +13,21 @@ const gameStatus = {
   gameTimer: 0,
   enemies: [],
   gameLoop: null,
-  isGameOver: false,
+  // isGameOver: false,
   gameOver: () => {
     app.ticker.remove(gameStatus.gameLoop);
-    gameStatus.isGameOver = true;
+    // gameStatus.isGameOver = true;
     
     for (let j = gameStatus.enemies.length - 1; j >= 0; j--) {
       gameStatus.enemies[j].remove()
     }
 
     const { explosion } = useAnimation()
-    const { x, y, width, height } = gameStatus.player.getBounds()
+    const { player } = gameStatus
+    const { x, y, width, height } = player.getBounds()
     explosion({x: x + width / 2, y: y + height / 2})
-    app.stage.removeChild(gameStatus.player);
+    player.remove()
+    // app.stage.removeChild(player);
   },
 }
 
@@ -43,12 +45,12 @@ export default () => {
     // Append the application canvas to the document body
     document.body.appendChild(app.canvas);
 
+    // 建立玩家
     gameStatus.player = usePlayer();
-    app.stage.addChild(gameStatus.player);
 
     const { createEnemy } = useEnemy()
     const enemyInterval = 1
-    // createEnemy()
+    createEnemy()
 
     // 顯示用文字
     const style = new TextStyle({
@@ -71,12 +73,6 @@ export default () => {
     const gameLoop = ({ deltaTime }) => {
       const { FPS } = app.ticker
       if (FPS < 50) console.warn('FPS: ' + FPS.toFixed(1));
-      // const now = performance.now();
-      // const deltaSec = (now - lastTime) / 1000;
-      // lastTime = now;
-
-      // gameStatus.gameTimer += deltaSec;
-      // console.log(gameStatus.gameTimer)
 
       const deltaSec = deltaTime / 60; // 以 60FPS 為基準，轉成秒
       gameStatus.gameTimer += deltaSec;
@@ -87,6 +83,7 @@ export default () => {
 
         lastShownTime = currentTime;
         timerText.text = `Time: ${currentTime}`;
+        gameStatus.player.status.setEnergy(5)
       }
     }
     gameStatus.gameLoop = gameLoop;

@@ -22,7 +22,7 @@ export default () => {
     skillIcon.width = size;
     skillIcon.height = size;
 
-    const iconMask = new Graphics
+    const iconMask = new Graphics();
     iconMask.roundRect(0, 0, size, size, arcRadius).fill({ color: 0x0 });
     skillIcon.mask = iconMask
 
@@ -152,7 +152,7 @@ export default () => {
         mask.clear()
         timerText.text = 'Q'
         phase = 0
-        console.log("動畫完成！");
+        console.log("冷卻完成！");
       }
     
     };
@@ -185,7 +185,9 @@ export default () => {
       return { x, y };
     }
 
-    return () => app.ticker.add(animate)
+    return {
+      start: () => app.ticker.add(animate),
+    }
   }
 
   return {

@@ -8,6 +8,12 @@ export default (parent) => {
   const { app, gameStatus } = game();
 
   const fire = () => {
+    const energyCost = 5
+    const { energy, setEnergy } = parent.status
+    if (energy < energyCost) return
+
+    setEnergy(energyCost * -1)
+    
     const x = parent.x
     const y = parent.y - parent.height / 2
     

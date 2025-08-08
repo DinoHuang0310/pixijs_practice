@@ -6,6 +6,13 @@ export default (keyCode) => {
     isUp: true,
     press: undefined,
     release: undefined,
+    unbind: () => {
+      window.removeEventListener("keydown", key.downHandler);
+      window.removeEventListener("keyup", key.upHandler);
+      // Reset handlers
+      key.downHandler = null;
+      key.upHandler = null;
+    }
   };
 
   // The `downHandler`
