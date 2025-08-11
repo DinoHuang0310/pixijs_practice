@@ -15,7 +15,7 @@ export default () => {
   const { initSkillCooldown } = useDashboard()
   
   const status = {
-    moveSpeed: 8,
+    moveSpeed: 5,
     isTriggerSpeedup: false,
     rotateSpeed: 1,
     point: 0,
@@ -79,6 +79,9 @@ export default () => {
   const energyBar = new Graphics()
   app.stage.addChild(energyBar);
 
+  const maxFrameRight = 8;
+  const maxFrameLeft = 22;
+
   // Capture the keyboard arrow keys
   const keyboardEvents = {
     left: useKeyboard(65),
@@ -91,71 +94,82 @@ export default () => {
   }
   const computedMoveSpeed = () => {
     const { buff, debuff, moveSpeed } = status;
-
-    const totalModifier = [...buff, ...debuff]
+    return [...buff, ...debuff]
       .filter(i => i.type === 'speed')
-      .reduce((sum, i) => sum + (i.value || 0), 0);
-    return moveSpeed + totalModifier;
+      .reduce((sum, i) => sum + (i.value || 0), moveSpeed);
   }
+  const setVX = () => {
+    const finalSpeed = computedMoveSpeed();
+    const { active: leftActive } = left;
+    const { active: rightActive } = right;
+    let newVX = 0;
+    if (leftActive) newVX -= finalSpeed;
+    if (rightActive) newVX += finalSpeed;
+    
+    const { currentFrame } = plane;
+    if (newVX === 0 && currentFrame !== 0) {
+      plane.stop();
+      plane.animationSpeed = currentFrame >= 22 ? status.rotateSpeed : status.rotateSpeed * -1;
+      plane.gotoAndPlay(currentFrame);
+    } else if (newVX > 0 && currentFrame < maxFrameRight) {
+      plane.stop();
+      plane.animationSpeed = status.rotateSpeed;
+      plane.gotoAndPlay(currentFrame);
+    } else if (newVX < 0 && currentFrame < maxFrameLeft) {
+      plane.stop();
+      plane.animationSpeed = status.rotateSpeed * -1;
+      plane.gotoAndPlay(currentFrame);
+    }
+    plane.vx = newVX
+  }
+  const setVY = () => {
+    const finalSpeed = computedMoveSpeed()
+    const { active: upActive } = up
+    const { active: downActive } = down
+    let newVY = 0
+    if (upActive) newVY -= finalSpeed
+    if (downActive) newVY += finalSpeed
+    plane.vy = newVY
+  }
+  
   const {left, up, right, down, skill, shot, speedUp} = keyboardEvents
   left.press = function() {
-    plane.vx = computedMoveSpeed() * -1;
-    plane.vy = 0;
-
-    currentKey = this.code;
-    plane.animationSpeed = status.rotateSpeed * -1;
-    plane.gotoAndPlay(plane.currentFrame);
+    left.active = true;
+    setVX()
   };
   left.release = function() {
-    if (!right.isDown) {
-      if (plane.vy === 0) plane.vx = 0;
-      
-      currentKey = null;
-      plane.animationSpeed = plane.currentFrame >= 22 ? status.rotateSpeed : status.rotateSpeed * -1;
-      plane.gotoAndPlay(plane.currentFrame);
-    }
+    left.active = false;
+    setVX()
   };
 
   up.press = function() {
-    plane.vy = computedMoveSpeed() * -1;
-    plane.vx = 0;
+    up.active = true;
+    setVY()
   };
   up.release = function() {
-    if (!down.isDown && plane.vx === 0) {
-      plane.vy = 0;
-    }
+    up.active = false;
+    setVY()
   };
 
   right.press = function() {
-    plane.vx = computedMoveSpeed();
-    plane.vy = 0;
-
-    currentKey = this.code;
-    plane.animationSpeed = status.rotateSpeed;
-    plane.gotoAndPlay(plane.currentFrame);
+    right.active = true;
+    setVX()
   };
   right.release = function() {
-    if (!left.isDown) {
-      if (plane.vy === 0) plane.vx = 0;
-
-      currentKey = null
-      plane.animationSpeed = plane.currentFrame >= 22 ? status.rotateSpeed : status.rotateSpeed * -1;
-      plane.gotoAndPlay(plane.currentFrame);
-    }
+    right.active = false;
+    setVX()
   };
 
   down.press = function() {
-    plane.vy = computedMoveSpeed();
-    plane.vx = 0;
+    down.active = true;
+    setVY()
   };
   down.release = function() {
-    if (!up.isDown && plane.vx === 0) {
-      plane.vy = 0;
-    }
+    down.active = false;
+    setVY()
   };
 
   skill.press = function() {
-    const { status } = plane
     if (!status.skills.length) {
       console.log('no skill')
       return;
@@ -177,42 +191,41 @@ export default () => {
   // shot.release = function() {
   //   console.log('stop')
   // };
-
-  let currentKey = null; // 避免重複觸發
-  const maxFrameRight = 8;
-  const maxFrameLeft = 22;
+  
   // 控制播放方向和終止幀
   plane.onFrameChange = (frame) => {
-    if (currentKey === right.code && frame === maxFrameRight) {
+    if (left.isDown && frame === maxFrameLeft) {
       plane.stop();
+      return;
     }
-    if (currentKey === left.code && frame === maxFrameLeft) {
+    if (right.active && frame === maxFrameRight) {
       plane.stop();
+      return;
     }
-    if (currentKey === null && frame === 0) {
+    if (left.isDown && right.active && frame === 0) {
       plane.stop();
+      return;
+    }
+    if (!left.isDown && !right.active && frame === 0) {
+      plane.stop();
+      return;
     }
   };
 
-  const updateSpeed = () => {
-    if (currentKey === right.code) plane.vx = computedMoveSpeed();
-    if (currentKey === left.code) plane.vx = -computedMoveSpeed();
-    if (currentKey === up.code) plane.vy = -computedMoveSpeed();
-    if (currentKey === down.code) plane.vy = computedMoveSpeed();
-  };
   speedUp.press = () => {
     if (status.energy < 1) return;
     status.buff.push({ type: 'speed', value: 5, id: 'shiftSpeedup' })
     status.isTriggerSpeedup = true;
-    updateSpeed()
+    setVX()
+    setVY()
   }
   speedUp.release = () => {
-    // console.log('speedUp release')
     const target = status.buff.findIndex(i => i.id === 'shiftSpeedup')
     if (target !== -1) {
       status.buff.splice(target, 1)
       status.isTriggerSpeedup = false;
-      updateSpeed()
+      setVX()
+      setVY()
     }
   }
 
@@ -237,6 +250,7 @@ export default () => {
     });
     // console.log("explorer位置" + plane.x + "," + plane.y)
 
+    const { energy } = status;
     if (status.isTriggerSpeedup) {
       const tickRate = 12; // 每秒扣幾次 energy
       const deltaSec = deltaTime / 60;
@@ -244,7 +258,7 @@ export default () => {
 
       if (speedupElapsed >= 1 / tickRate) {
         // 檢查當前 energy 是否足夠
-        if (status.energy > 0) {
+        if (energy > 0) {
           status.setEnergy(-1);
           speedupElapsed -= 1 / tickRate;
         } else {
@@ -256,7 +270,6 @@ export default () => {
     }
 
     // 能量條
-    const { energy } = status;
     const ratio = energy / 100;
     const maxWidth = 100
     const startX = plane.x - maxWidth / 2

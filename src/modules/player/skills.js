@@ -13,7 +13,7 @@ export default () => {
       name: '廣域雷擊',
       description: '召喚雷電閃擊全場，擊毀所有敵人',
       icon: Sprite.from(new URL('../../assets/skills/aoe01.jpg', import.meta.url).href),
-      energyCost: 20,
+      energyCost: 30,
       cooldown: 20,
       execute: () => {
         thunderStrike()
