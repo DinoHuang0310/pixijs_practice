@@ -24,6 +24,7 @@ const loader = {
       // await Assets.load(new URL('./assets/flowerTop.png', import.meta.url).href),
       // await Assets.load(new URL('./assets/skully.png', import.meta.url).href),
       // await Assets.load(new URL('./assets/helmlok.png', import.meta.url).href),
+      // await Assets.load(new URL('./assets/depth_blur_moby.png', import.meta.url).href),
     ];
 
     // 爆炸
@@ -35,6 +36,7 @@ const loader = {
 
     // icon
     await Assets.load(new URL('./assets/skills/aoe01.jpg', import.meta.url).href)
+    await Assets.load(new URL('./assets/skills/aoe02.jpg', import.meta.url).href)
     
     isLoaded = true;
   }

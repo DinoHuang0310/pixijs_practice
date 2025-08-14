@@ -1,19 +1,15 @@
 import { Graphics } from 'pixi.js';
 
-import game from '../game';
-import useHitTestRectangle from './useHitTestRectangle'
+import { getApp, getGameStatus } from '../game';
+import useHitTestRectangle from '../composables/useHitTestRectangle'
+import { toRealSpeed } from '../composables/useMath'
 
 // 射擊
 export default (parent) => {
-  const { app, gameStatus } = game();
+  const app = getApp();
+  const gameStatus = getGameStatus()
 
   const fire = () => {
-    const energyCost = 5
-    const { energy, setEnergy } = parent.status
-    if (energy < energyCost) return
-
-    setEnergy(energyCost * -1)
-    
     const x = parent.x
     const y = parent.y - parent.height / 2
     
@@ -25,7 +21,7 @@ export default (parent) => {
     app.stage.addChild(bullet);
 
     const animate = () => {
-      bullet.y -= bullet.speed;
+      bullet.y -= toRealSpeed(bullet.speed);
       
       // 超出畫面
       if (bullet.y < 0) {
@@ -44,7 +40,7 @@ export default (parent) => {
           bullet.destroy({ children: true, texture: false, baseTexture: false })
           app.ticker.remove(animate);
           
-          parent.status.pointPlus(enemy.point) // 計分
+          parent.status.setPoint(enemy.point) // 計分
           enemy.remove(true) // 移除敵人
           break;
         }

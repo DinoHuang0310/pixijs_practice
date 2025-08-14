@@ -1,8 +1,9 @@
 import './style.css'
-import game from './game'
+import { initGame } from './game'
 
-const { initGame } = game();
-initGame()
+;(async function() {
+  await initGame()
+})()
 
 // window.addEventListener("keydown", function(e) {
 //   console.log(e.keyCode)

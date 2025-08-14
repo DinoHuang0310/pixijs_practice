@@ -1,71 +1,31 @@
 import { AnimatedSprite, Graphics } from 'pixi.js';
 
-import game from '../../game';
+import { getApp, getGameStatus } from '../../game';
 import assetsLoader from '../../assetsLoader'
 import useKeyboard from '../../composables/useKeyboard'
 import useContain from '../../composables/useContain'
-import useShoot from '../../composables/useShoot'
+import useBullet from '../useBullet'
 import useHitTestRectangle from '../../composables/useHitTestRectangle'
-import useSkill from './skills'
-import useDashboard from '../dashboard/useDashboard';
+import { getScaleByPercentage, toRealSpeed } from '../../composables/useMath'
+import { getPlayerStatus } from './status'
 
-export default () => {
-  const { app, gameStatus } = game();
-  const allSkill = useSkill()
-  const { initSkillCooldown } = useDashboard()
-  
-  const status = {
-    moveSpeed: 5,
-    isTriggerSpeedup: false,
-    rotateSpeed: 1,
-    point: 0,
-    lastSkillTime: null,
-    activeSkillId: null,
-    skills: [],
-    buff: [],
-    debuff: [],
-    energy: 100,
-    setEnergy: (val) => {
-      const { energy } = status
-      if (energy + val < 0) return
-      status.energy = Math.min(energy + val, 100)
-    },
-    pointPlus: (point) => {
-      status.point += point
-      if (status.point === 1) {
-        const targetSkill = allSkill[0]
+let plane = null;
 
-        // 註冊技能冷卻icon
-        const skillDashboard = initSkillCooldown(targetSkill);
-        // 擴充原本的execute方法, 加上額外行為
-        status.skills.push({
-          ...targetSkill,
-          execute: () => {
-            const { energyCost } = targetSkill
-            if (status.energy < energyCost) return;
+const getPlayer = () => {
+  if (!plane) throw new Error('player not initialized. Did you forget to call createPlayer()?');
+  return plane
+}
 
-            status.setEnergy(energyCost * -1)
-            status.lastSkillTime = gameStatus.gameTimer; // 記錄施放時間
-            skillDashboard.start() // 觸發dashboard動畫
+const createPlayer = () => {
+  const app = getApp();
+  const gameStatus = getGameStatus()
 
-            // 執行原本技能的效果
-            targetSkill.execute();
-          },
-        });
+  plane = new AnimatedSprite(assetsLoader.planeFrames);
 
-        status.activeSkillId = targetSkill.id
-      }
-    },
-  }
+  const status = getPlayerStatus()
+  plane.status = status // 狀態檔已獨立, 暫時還是掛載在player實體上, 除非後續要開放player2
 
-  const { planeFrames: frames } = assetsLoader
-
-  let plane = new AnimatedSprite(frames);
-  plane.status = status
-
-  const planeScale = 0.08;
-  const targetWidth = app.screen.width * planeScale;
-  plane.scale.set(targetWidth / plane.width); // 等比縮放, 不變形
+  plane.scale.set(getScaleByPercentage(plane, 0.08)); // 等比縮放, 不變形
   // console.log(plane.width, plane.height)
 
   plane.x = app.screen.width / 2;
@@ -76,7 +36,7 @@ export default () => {
   // plane.interactive = true; // 允許點擊
   plane.loop = true;
 
-  const energyBar = new Graphics()
+  let energyBar = new Graphics()
   app.stage.addChild(energyBar);
 
   const maxFrameRight = 8;
@@ -94,11 +54,14 @@ export default () => {
   }
   const computedMoveSpeed = () => {
     const { buff, debuff, moveSpeed } = status;
-    return [...buff, ...debuff]
+    const v = [...buff, ...debuff]
       .filter(i => i.type === 'speed')
       .reduce((sum, i) => sum + (i.value || 0), moveSpeed);
+    return toRealSpeed(v)
   }
   const setVX = () => {
+    if (gameStatus.isPause) return;
+
     const finalSpeed = computedMoveSpeed();
     const { active: leftActive } = left;
     const { active: rightActive } = right;
@@ -123,6 +86,8 @@ export default () => {
     plane.vx = newVX
   }
   const setVY = () => {
+    if (gameStatus.isPause) return;
+
     const finalSpeed = computedMoveSpeed()
     const { active: upActive } = up
     const { active: downActive } = down
@@ -176,21 +141,33 @@ export default () => {
     }
 
     const activeSkill = status.skills.find(i => i.id === status.activeSkillId)
+
+    const { cost } = activeSkill
+    if (status.energy < cost) return;
+    
+    const { lastExecute, cooldown, dashboard, execute } = activeSkill
     const now = gameStatus.gameTimer
-    if (!status.lastSkillTime || now - status.lastSkillTime > activeSkill.cooldown) {
-      activeSkill.execute();
+    if (!lastExecute || now - lastExecute > cooldown) {
+      status.setEnergy(cost * -1)
+      activeSkill.lastExecute = now // 記錄施放時間
+      dashboard.start() // 觸發dashboard冷卻動畫
+      execute(plane);
     } else {
-      const difference = Math.abs(activeSkill.cooldown - (now - status.lastSkillTime))
-      console.warn(`技能冷卻中, 還差 ${Math.floor(difference) + 1}秒`)
+      // const difference = Math.abs(cooldown - (now - lastExecute))
+      // console.warn(`技能冷卻中, 還差 ${Math.floor(difference) + 1}秒`)
     }
   };
 
   // 射擊
-  const { fire } = useShoot(plane);
-  shot.press = fire
-  // shot.release = function() {
-  //   console.log('stop')
-  // };
+  const { fire } = useBullet(plane);
+  shot.press = () => {
+    const { energy, shootCost, setEnergy } = status
+    if (gameStatus.isPause) return;
+    if (energy < shootCost) return
+
+    setEnergy(shootCost * -1)
+    fire()
+  }
   
   // 控制播放方向和終止幀
   plane.onFrameChange = (frame) => {
@@ -229,7 +206,7 @@ export default () => {
     }
   }
 
-  // const { fire } = useShoot(plane);
+  // const { fire } = useBullet(plane);
   // const autoFire = () => {
   //   if (plane) {
   //     fire()
@@ -240,6 +217,13 @@ export default () => {
 
   let speedupElapsed = 0;
   const animate = ({ deltaTime }) => {
+    if (gameStatus.isPause) {
+      plane.vx = 0;
+      plane.vy = 0;
+      plane.stop();
+      return
+    };
+
     plane.x += plane.vx;
     plane.y += plane.vy;
     useContain(plane, {
@@ -280,13 +264,13 @@ export default () => {
     energyBar.rect(startX, startY, maxWidth * ratio, 5);
     energyBar.fill(0x00ccff);
 
-    const { enemies, gameOver } = gameStatus
+    const { enemies, endGame } = gameStatus
     for (let j = enemies.length - 1; j >= 0; j--) {
       const enemy = enemies[j];
       if (useHitTestRectangle(enemy.body, plane)) {
         app.ticker.remove(animate);
         status.rotateSpeed = 0;
-        gameOver()
+        endGame()
         
         break;
       }
@@ -305,8 +289,17 @@ export default () => {
         k.unbind()
       }
     });
+
     plane.destroy()
     plane = null
+
+    energyBar.destroy()
+    energyBar = null
   }
-  return plane;
+  // return plane;
 }
+
+export {
+  getPlayer,
+  createPlayer,
+};

@@ -1,14 +1,14 @@
 import { Sprite } from 'pixi.js';
 
 import assetsLoader from '../../assetsLoader'
-import game from '../../game';
+import { getApp, getGameStatus } from '../../game';
 import useAnimation from '../animations/useAnimation'
 import useContain from '../../composables/useContain'
-import useMath from '../../composables/useMath'
-const { randomInt } = useMath
+import { randomInt, getScaleByPercentage, toRealSpeed } from '../../composables/useMath'
 
 export default () => {
-  const { app, gameStatus } = game();
+  const app = getApp()
+  const gameStatus = getGameStatus()
   
   let index = 0;
   const { alienTextures } = assetsLoader
@@ -44,16 +44,18 @@ export default () => {
 
     enemy.body.x = randomInt(0, Math.floor(app.screen.width));
     enemy.body.y = enemy.body.height * -0.5;
-    enemy.body.scale.set(0.8)
+    enemy.body.scale.set(getScaleByPercentage(enemy.body, 0.08)); // 等比定寬 8%
     enemy.body.anchor.set(0.5)
+    
     app.stage.addChild(enemy.body);
     gameStatus.enemies.push(enemy)
 
     let moveSpeedX = randomInt(enemy.speed * -1, enemy.speed)
     const animate = () => {
+      if (gameStatus.isPause) return;
       const { body } = enemy;
-      body.x += moveSpeedX
-      body.y += enemy.speed
+      body.x += toRealSpeed(moveSpeedX)
+      body.y += toRealSpeed(enemy.speed)
 
       if (body.y - body.height > app.screen.height) {
         enemy.remove()

@@ -1,10 +1,10 @@
 import { AnimatedSprite, Graphics } from 'pixi.js';
 
-import game from '../../game'
+import { getApp } from '../../game'
 import assetsLoader from '../../assetsLoader'
 
 export default () => {
-  const { app } = game()
+  const app = getApp()
   
   // 爆炸
   const explosion = ({
@@ -62,7 +62,7 @@ export default () => {
         }
       } else {
         // 結束動畫，移除
-        app.stage.removeChild(flash);
+        // app.stage.removeChild(flash);
         flash.destroy();
         app.ticker.remove(animate);
       }
@@ -71,8 +71,41 @@ export default () => {
     app.ticker.add(animate);
   }
 
+  // 火狩
+  const fireRound = (parent) => {
+    const fireCircle = new Graphics()
+
+    app.stage.addChild(fireCircle);
+
+    let elapsed = 0;
+    const duration = 1000; // 動畫持續 N/ms
+    const animate = () => {
+      const center = parent.getGlobalPosition()
+      const { x, y } = center
+
+      elapsed += app.ticker.deltaMS;
+      const progress = Math.min(elapsed / duration, duration / 1000);
+      const radius = progress * 500; // 最多放大到半徑 500
+      const alpha = 1 - progress;   // alpha 從 1 漸漸變成 0
+
+      fireCircle.clear();
+      fireCircle.position.set(x, y)
+      fireCircle.circle(0, 0, radius)
+        .fill({ color: 0xffffff, alpha: 0 })
+        .stroke({ width: 2, color: 0xff0000, alpha });
+
+      if (progress >= duration / 1000) {
+        app.ticker.remove(animate);
+        fireCircle.destroy(); // 動畫結束，移除圖形
+      }
+    }
+    app.ticker.add(animate);
+    return fireCircle;
+  }
+
   return {
     explosion,
     thunderStrike,
+    fireRound,
   }
 }
