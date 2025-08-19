@@ -74,7 +74,7 @@ const skillCooldown = (skill) => {
 
   function remove() {
     app.ticker.remove(animate);
-    skillContainer.destroy()
+    skillContainer.destroy({ children: true })
   }
 
   let phase = 0;

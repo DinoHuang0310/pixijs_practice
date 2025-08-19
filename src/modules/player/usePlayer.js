@@ -1,18 +1,19 @@
 import { AnimatedSprite, Graphics } from 'pixi.js';
 
 import { getApp, getGameStatus } from '../../game';
+import useAnimation from '../animations/useAnimation'
 import assetsLoader from '../../assetsLoader'
 import useKeyboard from '../../composables/useKeyboard'
 import useContain from '../../composables/useContain'
 import useBullet from '../useBullet'
 import useHitTestRectangle from '../../composables/useHitTestRectangle'
 import { getScaleByPercentage, toRealSpeed } from '../../composables/useMath'
-import { getPlayerStatus } from './status'
+import { getPlayerStatus, resetPlayerStatus } from './status'
 
 let plane = null;
 
 const getPlayer = () => {
-  if (!plane) throw new Error('player not initialized. Did you forget to call createPlayer()?');
+  if (!plane) console.warn('player not initialized. Did you forget to call createPlayer()?')
   return plane
 }
 
@@ -159,15 +160,15 @@ const createPlayer = () => {
   };
 
   // 射擊
-  const { fire } = useBullet(plane);
-  shot.press = () => {
-    const { energy, shootCost, setEnergy } = status
-    if (gameStatus.isPause) return;
-    if (energy < shootCost) return
+  // const { fire } = useBullet(plane);
+  // shot.press = () => {
+  //   const { energy, shootCost, setEnergy } = status
+  //   if (gameStatus.isPause) return;
+  //   if (energy < shootCost) return
 
-    setEnergy(shootCost * -1)
-    fire()
-  }
+  //   setEnergy(shootCost * -1)
+  //   fire()
+  // }
   
   // 控制播放方向和終止幀
   plane.onFrameChange = (frame) => {
@@ -206,14 +207,9 @@ const createPlayer = () => {
     }
   }
 
-  // const { fire } = useBullet(plane);
-  // const autoFire = () => {
-  //   if (plane) {
-  //     fire()
-  //     setTimeout(autoFire, 300);
-  //   }
-  // }
-  // autoFire()
+  // 自動射擊
+  const { fire } = useBullet(plane);
+  let customElapsed = 0;
 
   let speedupElapsed = 0;
   const animate = ({ deltaTime }) => {
@@ -234,10 +230,18 @@ const createPlayer = () => {
     });
     // console.log("explorer位置" + plane.x + "," + plane.y)
 
-    const { energy } = status;
+    const { energy, fireInterval } = status;
+    const deltaSec = deltaTime / 60;
+
+    customElapsed += deltaSec;
+    if (customElapsed >= fireInterval) {
+      fire();
+      customElapsed -= fireInterval; // 減去間隔，避免累積誤差
+    }
+  
+    // console.log(deltaSec)
     if (status.isTriggerSpeedup) {
       const tickRate = 12; // 每秒扣幾次 energy
-      const deltaSec = deltaTime / 60;
       speedupElapsed += deltaSec;
 
       if (speedupElapsed >= 1 / tickRate) {
@@ -270,8 +274,15 @@ const createPlayer = () => {
       if (useHitTestRectangle(enemy.body, plane)) {
         app.ticker.remove(animate);
         status.rotateSpeed = 0;
-        endGame()
+
+        const { explosion } = useAnimation()
+        const { x, y, width, height } = plane.getBounds()
+        explosion({x: x + width / 2, y: y + height / 2})
         
+        plane.visible = false;
+        energyBar.visible = false;
+
+        endGame()
         break;
       }
     }
@@ -283,20 +294,21 @@ const createPlayer = () => {
   app.ticker.add(animate);
 
   plane.remove = () => {
-    app.ticker.remove(animate);
+    // app.ticker.remove(animate);
     Object.values(keyboardEvents).forEach(k => {
       if (typeof k.unbind === 'function') {
         k.unbind()
       }
     });
 
-    plane.destroy()
+    resetPlayerStatus()
+
+    plane.destroy({ children: true, texture: false, baseTexture: false })
     plane = null
 
     energyBar.destroy()
     energyBar = null
   }
-  // return plane;
 }
 
 export {

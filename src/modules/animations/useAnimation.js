@@ -2,13 +2,14 @@ import { AnimatedSprite, Graphics } from 'pixi.js';
 
 import { getApp } from '../../game'
 import assetsLoader from '../../assetsLoader'
+import { getScaleByPercentage } from '../../composables/useMath'
 
 export default () => {
   const app = getApp()
   
   // 爆炸
   const explosion = ({
-    x, y, scale = 0.8, anchor = 0.5
+    x, y, scale = 0.15, anchor = 0.5
   }) => {
     if (!x || !y) {
       console.warn('參數x, y 必傳')
@@ -19,7 +20,7 @@ export default () => {
     explosion.x = x;
     explosion.y = y;
     explosion.loop = false;
-    explosion.scale.set(scale)
+    explosion.scale.set(getScaleByPercentage(explosion, scale))
     explosion.anchor.set(anchor);
     explosion.gotoAndPlay(0);
     

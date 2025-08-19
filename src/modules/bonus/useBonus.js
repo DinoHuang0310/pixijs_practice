@@ -33,9 +33,14 @@ export default () => {
     app.stage.addChild(bonus.body);
 
     const animate = () => {
-      const player = getPlayer()
       const { isGameOver, isPause } = gameStatus
-      if (isGameOver || isPause) return;
+      if (isPause) return;
+      if (isGameOver) {
+        bonus.remove()
+        return;
+      }
+      
+      const player = getPlayer()
       const { body } = bonus;
       body.y += toRealSpeed(bonus.speed)
 

@@ -21,17 +21,23 @@ export default (parent) => {
     app.stage.addChild(bullet);
 
     const animate = () => {
+      const { isGameOver, isPause, enemies } = gameStatus;
+      if (isPause) return;
+      if (isGameOver) {
+        app.ticker.remove(animate);
+        bullet.destroy({ children: true, texture: false, baseTexture: false })
+        return
+      }
+
       bullet.y -= toRealSpeed(bullet.speed);
       
       // 超出畫面
       if (bullet.y < 0) {
-        // app.stage.removeChild(bullet);
-        bullet.destroy({ children: true, texture: false, baseTexture: false })
         app.ticker.remove(animate);
+        bullet.destroy({ children: true, texture: false, baseTexture: false })
         return
       }
 
-      const enemies = gameStatus.enemies
       for (let j = enemies.length - 1; j >= 0; j--) {
         const enemy = enemies[j];
         
@@ -41,7 +47,9 @@ export default (parent) => {
           app.ticker.remove(animate);
           
           parent.status.setPoint(enemy.point) // 計分
-          enemy.remove(true) // 移除敵人
+          parent.status.setKillCount()
+
+          enemy.remove() // 移除敵人
           break;
         }
       }

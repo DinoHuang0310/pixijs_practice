@@ -46,7 +46,7 @@ export default () => {
           for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
             if (useHitTestRectangle(enemy.body, sonicBoom)) {
-              enemies[j].remove(true);
+              enemies[j].remove();
             }
           }
     
@@ -69,7 +69,7 @@ export default () => {
         thunderStrike()
         const enemies = gameStatus.enemies
         for (let j = enemies.length - 1; j >= 0; j--) {
-          enemies[j].remove(true);
+          enemies[j].remove();
         }
       },
     },

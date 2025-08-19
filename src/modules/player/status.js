@@ -6,10 +6,12 @@ const status = {
   isTriggerSpeedup: false,
   rotateSpeed: 1,
   point: 0,
+  killCount: 0,
   activeSkillId: null,
   skills: [],
   buff: [],
   debuff: [],
+  fireInterval: 0.4,
   shootCost: 5,
   energy: 100,
   setEnergy: (val) => {
@@ -34,10 +36,31 @@ const status = {
       createBonus()
     }
   },
+  setKillCount: () => {
+    status.killCount ++
+  },
 }
 
 const getPlayerStatus = () => status
 
+const resetPlayerStatus = () => {
+  while (status.skills.length > 0) {
+    const skill = status.skills.pop();
+    skill.dashboard.remove();
+  }
+  status.moveSpeed = 5;
+  status.isTriggerSpeedup = false;
+  status.rotateSpeed = 1;
+  status.point = 0;
+  status.killCount = 0;
+  status.activeSkillId = null;
+  status.buff = [];
+  status.debuff = [];
+  status.shootCost = 5;
+  status.energy = 100;
+}
+
 export {
   getPlayerStatus,
+  resetPlayerStatus,
 };

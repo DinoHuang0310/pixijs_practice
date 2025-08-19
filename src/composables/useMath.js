@@ -14,5 +14,7 @@ export function getScaleByPercentage(model, scale) {
 
 export function toRealSpeed(val) {
   const app = getApp()
-  return val * app.screen.height / 1000
+  const deltaSec = app.ticker.deltaTime / 60
+  return val * (app.screen.height * 0.06) * deltaSec
 }
+ 

@@ -4,7 +4,11 @@ import assetsLoader from '../../assetsLoader'
 import { getApp, getGameStatus } from '../../game';
 import useAnimation from '../animations/useAnimation'
 import useContain from '../../composables/useContain'
-import { randomInt, getScaleByPercentage, toRealSpeed } from '../../composables/useMath'
+import {
+  randomInt,
+  getScaleByPercentage,
+  toRealSpeed
+} from '../../composables/useMath'
 
 export default () => {
   const app = getApp()
@@ -18,19 +22,19 @@ export default () => {
       body: new Sprite(alienTextures[index]),
       speed: 3,
       point: 1,
-      remove: (withAnimation) => {
+      remove: (withoutAnimate) => {
         app.ticker.remove(animate);
-
-        const { enemies } = gameStatus
-        if (withAnimation) {
+        
+        if (!withoutAnimate) {
           const { explosion } = useAnimation()
           const { x, y, width, height } = enemy.body.getBounds()
           explosion({x: x + width / 2, y: y + height / 2})
-          // app.stage.removeChild(enemy.body);
-          enemy.body.destroy({ children: true, texture: false, baseTexture: false });
         }
         
+        enemy.body.destroy({ children: true, texture: false, baseTexture: false });
+        
         // 從 enemies 陣列中移除該實體
+        const { enemies } = gameStatus
         const target = enemies.indexOf(enemy);
         if (target !== -1) {
           enemies.splice(target, 1);
@@ -58,7 +62,8 @@ export default () => {
       body.y += toRealSpeed(enemy.speed)
 
       if (body.y - body.height > app.screen.height) {
-        enemy.remove()
+        enemy.remove(true)
+        return;
       }
 
       const overflow = useContain(body, {
