@@ -3,13 +3,15 @@ import { Application, Text, TextStyle } from 'pixi.js';
 import assetsLoader from './assetsLoader'
 import { createPlayer, getPlayer } from './modules/player/usePlayer'
 import useEnemy from './modules/enemy/useEnemy'
-import useAnimation from './modules/animations/useAnimation'
+// import useAnimation from './modules/animations/useAnimation'
 import useKeyboard from './composables/useKeyboard'
+import useScene from './scene';
 
 // Create a new application
 let app = null;
 const gameStatus = {
   gameTimer: 0,
+  fps: 0,
   enemies: [],
   gameLoop: null,
   isGameOver: false,
@@ -19,20 +21,18 @@ const gameStatus = {
   },
   endGame: () => {
     app.ticker.remove(gameStatus.gameLoop);
+    gameStatus.gameLoop = null;
     gameStatus.isGameOver = true;
-    
-    for (let j = gameStatus.enemies.length - 1; j >= 0; j--) {
-      gameStatus.enemies[j].remove()
-    }
 
-    const { explosion } = useAnimation()
     const player = getPlayer()
-    const { x, y, width, height } = player.getBounds()
-    explosion({x: x + width / 2, y: y + height / 2})
-    player.remove()
-    // app.stage.removeChild(player);
+    useScene.gameover(player.status)
+
+    player.remove();
   },
 }
+
+let timerText = null;
+let fpsText = null;
 
 async function initGame() {
   if (app) return;
@@ -68,6 +68,31 @@ async function initGame() {
   // Append the application canvas to the document body
   document.body.appendChild(app.canvas);
 
+  const toggleGame = useKeyboard(9)
+  toggleGame.press = gameStatus.togglePause
+
+  useScene.start()
+  // gameStart()
+}
+
+const resetGameStatus = () => {
+  gameStatus.gameTimer = 0;
+
+  if (timerText) {
+    timerText.destroy()
+    timerText = null;
+  }
+
+  for (let j = gameStatus.enemies.length - 1; j >= 0; j--) {
+    gameStatus.enemies[j].remove(true)
+  }
+  gameStatus.isGameOver = false;
+  gameStatus.isPause = false;
+}
+
+const gameStart = () => {
+  resetGameStatus()
+
   // 建立玩家
   createPlayer()
 
@@ -80,7 +105,7 @@ async function initGame() {
     fontSize: 24,
     fill: 0xffffff,
   });
-  const timerText = new Text({
+  timerText = new Text({
     text: `Time: ${gameStatus.gameTimer}`,
     style,
   });
@@ -88,13 +113,24 @@ async function initGame() {
   timerText.y = 10;
   app.stage.addChild(timerText);
 
+  fpsText = new Text({
+    text: `fps: ${app.ticker.FPS.toFixed()}`,
+    style,
+  });
+  fpsText.x = 10;
+  fpsText.y = timerText.height + 20;
+  app.stage.addChild(fpsText);
+
   // render
   let lastShownTime = 0;
   const gameLoop = ({ deltaTime }) => {
     if (gameStatus.isPause) return;
     
     const { FPS } = app.ticker
-    if (FPS < 50) console.warn('FPS: ' + FPS.toFixed(1));
+    if (FPS < 50) console.warn('FPS: ' + FPS.toFixed());
+    if (gameStatus.fps !== FPS) {
+      fpsText.text = `fps: ${app.ticker.FPS.toFixed()}`
+    }
 
     const deltaSec = deltaTime / 60; // 以 60FPS 為基準，轉成秒
     gameStatus.gameTimer += deltaSec;
@@ -111,9 +147,6 @@ async function initGame() {
   }
   gameStatus.gameLoop = gameLoop;
   app.ticker.add(gameLoop);
-
-  const toggleGame = useKeyboard(9)
-  toggleGame.press = gameStatus.togglePause
 }
 
 function getApp() {
@@ -127,6 +160,7 @@ function getGameStatus() {
 
 export {
   initGame,
+  gameStart,
   getApp,
   getGameStatus,
 };
