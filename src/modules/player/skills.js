@@ -12,6 +12,21 @@ export default () => {
   return [
     {
       id: 'aoe01',
+      name: '廣域雷擊',
+      description: '召喚雷電閃擊全場，擊毀所有敵人',
+      icon: () => Sprite.from(new URL('../../assets/skills/aoe01.jpg', import.meta.url).href),
+      cost: 30,
+      cooldown: 20,
+      execute: (parent) => {
+        thunderStrike()
+        const enemies = gameStatus.enemies
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          enemies[j].setHp(1, parent);
+        }
+      },
+    },
+    {
+      id: 'aoe02',
       name: '音爆',
       description: '釋放音爆，破壞周圍敵人',
       icon: () => Sprite.from(new URL('../../assets/skills/aoe02.jpg', import.meta.url).href),
@@ -27,7 +42,8 @@ export default () => {
         const hitEnemies = new Set();
 
         const animate = () => {
-          const { enemies, isGameOver } = gameStatus
+          const { enemies, isGameOver, isPause } = gameStatus
+          if (isPause) return;
           if (isGameOver) {
             app.ticker.remove(animate);
             return
@@ -64,21 +80,6 @@ export default () => {
           }
         }
         app.ticker.add(animate);
-      },
-    },
-    {
-      id: 'aoe02',
-      name: '廣域雷擊',
-      description: '召喚雷電閃擊全場，擊毀所有敵人',
-      icon: () => Sprite.from(new URL('../../assets/skills/aoe01.jpg', import.meta.url).href),
-      cost: 30,
-      cooldown: 20,
-      execute: (parent) => {
-        thunderStrike()
-        const enemies = gameStatus.enemies
-        for (let j = enemies.length - 1; j >= 0; j--) {
-          enemies[j].setHp(1, parent);
-        }
       },
     },
   ]

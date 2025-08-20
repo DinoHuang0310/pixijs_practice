@@ -8,7 +8,7 @@ import { toRealSpeed } from '../composables/useMath'
 export default (parent) => {
   const app = getApp();
   const gameStatus = getGameStatus()
-  
+
   const fire = () => {
     const { weaponLevel } = parent.status;
     const count = Math.min(weaponLevel, 5); // 最多5顆
@@ -16,7 +16,7 @@ export default (parent) => {
     const startX = parent.x - ((count - 1) * spacing) / 2;
     const y = parent.y - parent.height / 2;
     const size = app.screen.width * 0.003;
-    const bulletSpeed = 10;
+    const bulletSpeed = 12;
 
     const createBullet = (x) => {
       const bullet = new Graphics().circle(0, 0, size).fill(0xffffff);

@@ -1,6 +1,6 @@
 import { AnimatedSprite, Graphics } from 'pixi.js';
 
-import { getApp } from '../../game'
+import { getApp, getGameStatus } from '../../game'
 import assetsLoader from '../../assetsLoader'
 import { getScaleByPercentage } from '../../composables/useMath'
 
@@ -49,7 +49,11 @@ export default () => {
     const flashInterval = 200; // 每次閃爍間隔（毫秒）
     const flashDuration = 100; // 每次閃爍持續時間（毫秒）
 
+    const gameStatus = getGameStatus()
+
     const animate = () => {
+      const { isPause } = gameStatus
+      if (isPause) return;
       flashTimer += app.ticker.deltaMS;
 
       if (flashCount < 2) {
