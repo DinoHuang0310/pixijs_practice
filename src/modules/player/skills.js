@@ -11,7 +11,7 @@ export default () => {
 
   return [
     {
-      id: 'aoe02',
+      id: 'aoe01',
       name: '音爆',
       description: '釋放音爆，破壞周圍敵人',
       icon: () => Sprite.from(new URL('../../assets/skills/aoe02.jpg', import.meta.url).href),
@@ -27,6 +27,11 @@ export default () => {
         const hitEnemies = new Set();
 
         const animate = () => {
+          const { enemies, isGameOver } = gameStatus
+          if (isGameOver) {
+            app.ticker.remove(animate);
+            return
+          }
           const { x, y } = parent
     
           elapsed += app.ticker.deltaMS;
@@ -44,8 +49,7 @@ export default () => {
           sonicBoom.circle(0, 0, radius)
             .fill({ color: 0xffffff, alpha: 0 })
             .stroke({ width: 2, color: 0xffffff, alpha });
-
-          const enemies = gameStatus.enemies
+          
           for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
             if (!hitEnemies.has(enemy) && useHitTestRectangle(enemy.body, sonicBoom)) {
@@ -63,7 +67,7 @@ export default () => {
       },
     },
     {
-      id: 'aoe01',
+      id: 'aoe02',
       name: '廣域雷擊',
       description: '召喚雷電閃擊全場，擊毀所有敵人',
       icon: () => Sprite.from(new URL('../../assets/skills/aoe01.jpg', import.meta.url).href),
