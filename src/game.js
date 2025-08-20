@@ -2,7 +2,10 @@ import { Application, Text, TextStyle } from 'pixi.js';
 
 import assetsLoader from './assetsLoader'
 import { createPlayer, getPlayer } from './modules/player/usePlayer'
-import useEnemy from './modules/enemy/useEnemy'
+import {
+  createNormalEnemy,
+  createBonusEnemy
+} from './modules/enemy'
 // import useAnimation from './modules/animations/useAnimation'
 import useKeyboard from './composables/useKeyboard'
 import useScene from './scene';
@@ -84,7 +87,7 @@ const resetGameStatus = () => {
   }
 
   for (let j = gameStatus.enemies.length - 1; j >= 0; j--) {
-    gameStatus.enemies[j].remove(true)
+    gameStatus.enemies[j].remove()
   }
   gameStatus.isGameOver = false;
   gameStatus.isPause = false;
@@ -96,9 +99,10 @@ const gameStart = () => {
   // 建立玩家
   createPlayer()
 
-  const { createEnemy } = useEnemy()
   const enemyInterval = 1
-  createEnemy()
+  createNormalEnemy()
+  const bonusInterval = 10
+  createBonusEnemy()
 
   // 顯示用文字
   const style = new TextStyle({
@@ -137,7 +141,8 @@ const gameStart = () => {
 
     const currentTime = Math.floor(gameStatus.gameTimer);
     if (currentTime !== lastShownTime) {
-      if (currentTime % enemyInterval === 0) createEnemy();
+      if (currentTime % enemyInterval === 0) createNormalEnemy();
+      if (currentTime % bonusInterval === 0) createBonusEnemy();
 
       lastShownTime = currentTime;
       timerText.text = `Time: ${currentTime}`;
