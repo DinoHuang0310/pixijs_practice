@@ -23,12 +23,15 @@ export default () => {
     
         let elapsed = 0;
         const duration = 300; // 動畫持續 N/ms
+        const size = app.screen.width * 0.2; // 半徑範圍
+        const hitEnemies = new Set();
+
         const animate = () => {
           const { x, y } = parent
     
           elapsed += app.ticker.deltaMS;
           const progress = Math.min(elapsed / duration, 1);
-          const radius = progress * 300; // 最多放大到半徑 300
+          const radius = progress * size;
           const alpha = 1 - progress; // alpha 從 1 漸漸變成 0
     
           sonicBoom.clear();
@@ -45,8 +48,9 @@ export default () => {
           const enemies = gameStatus.enemies
           for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
-            if (useHitTestRectangle(enemy.body, sonicBoom)) {
-              enemies[j].remove();
+            if (!hitEnemies.has(enemy) && useHitTestRectangle(enemy.body, sonicBoom)) {
+              hitEnemies.add(enemy);
+              enemies[j].setHp(1, parent);
             }
           }
     
@@ -65,11 +69,11 @@ export default () => {
       icon: () => Sprite.from(new URL('../../assets/skills/aoe01.jpg', import.meta.url).href),
       cost: 30,
       cooldown: 20,
-      execute: () => {
+      execute: (parent) => {
         thunderStrike()
         const enemies = gameStatus.enemies
         for (let j = enemies.length - 1; j >= 0; j--) {
-          enemies[j].remove();
+          enemies[j].setHp(1, parent);
         }
       },
     },

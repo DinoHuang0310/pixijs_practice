@@ -12,7 +12,7 @@ const status = {
   buff: [],
   debuff: [],
   fireInterval: 0.4,
-  shootCost: 5,
+  weaponLevel: 1,
   energy: 100,
   setEnergy: (val) => {
     const { energy } = status
@@ -39,6 +39,9 @@ const status = {
   setKillCount: () => {
     status.killCount ++
   },
+  setWeaponLevel: () => {
+    status.weaponLevel ++
+  },
 }
 
 const getPlayerStatus = () => status
@@ -56,8 +59,9 @@ const resetPlayerStatus = () => {
   status.activeSkillId = null;
   status.buff = [];
   status.debuff = [];
-  status.shootCost = 5;
   status.energy = 100;
+  status.fireInterval = 0.4;
+  status.weaponLevel = 1;
 }
 
 export {

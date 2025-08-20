@@ -8,55 +8,63 @@ import { toRealSpeed } from '../composables/useMath'
 export default (parent) => {
   const app = getApp();
   const gameStatus = getGameStatus()
-
+  
   const fire = () => {
-    const x = parent.x
-    const y = parent.y - parent.height / 2
-    
-    const bullet = new Graphics().circle(0, 0, 4).fill(0xffffff);
-    bullet.x = x;
-    bullet.y = y;
-    bullet.speed = 10
-    
-    app.stage.addChild(bullet);
+    const { weaponLevel } = parent.status;
+    const count = Math.min(weaponLevel, 5); // 最多5顆
+    const spacing = parent.width * 0.2;
+    const startX = parent.x - ((count - 1) * spacing) / 2;
+    const y = parent.y - parent.height / 2;
+    const size = app.screen.width * 0.003;
+    const bulletSpeed = 10;
 
-    const animate = () => {
-      const { isGameOver, isPause, enemies } = gameStatus;
-      if (isPause) return;
-      if (isGameOver) {
-        app.ticker.remove(animate);
-        bullet.destroy({ children: true, texture: false, baseTexture: false })
-        return
-      }
+    const createBullet = (x) => {
+      const bullet = new Graphics().circle(0, 0, size).fill(0xffffff);
+      bullet.x = x;
+      bullet.y = y;
+      bullet.speed = bulletSpeed;
+      app.stage.addChild(bullet);
 
-      bullet.y -= toRealSpeed(bullet.speed);
-      
-      // 超出畫面
-      if (bullet.y < 0) {
-        app.ticker.remove(animate);
-        bullet.destroy({ children: true, texture: false, baseTexture: false })
-        return
-      }
-
-      for (let j = enemies.length - 1; j >= 0; j--) {
-        const enemy = enemies[j];
-        
-        if (useHitTestRectangle(enemy.body, bullet)) {
-          // app.stage.removeChild(bullet);
-          bullet.destroy({ children: true, texture: false, baseTexture: false })
+      const animate = () => {
+        const { isGameOver, isPause, enemies } = gameStatus;
+        if (isPause) return;
+        if (isGameOver) {
           app.ticker.remove(animate);
-          
-          parent.status.setPoint(enemy.point) // 計分
-          parent.status.setKillCount()
-
-          enemy.remove() // 移除敵人
-          break;
+          bullet.destroy();
+          return;
         }
-      }
-    }
 
-    app.ticker.add(animate)
-  }
+        bullet.y -= toRealSpeed(bullet.speed);
+
+        if (bullet.y < 0) {
+          app.ticker.remove(animate);
+          bullet.destroy();
+          return;
+        }
+
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const enemy = enemies[j];
+          if (useHitTestRectangle(enemy.body, bullet)) {
+            bullet.destroy();
+            app.ticker.remove(animate);
+
+            // parent.status.setPoint(enemy.point);
+            // parent.status.setKillCount();
+            // enemy.remove();
+            enemy.setHp(1, parent);
+            break;
+          }
+        }
+      };
+
+      app.ticker.add(animate);
+    };
+
+    for (let i = 0; i < count; i++) {
+      const x = startX + i * spacing;
+      createBullet(x);
+    }
+  };
 
   return {
     fire,
