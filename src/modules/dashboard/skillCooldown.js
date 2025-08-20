@@ -6,8 +6,8 @@ const skillCooldown = (skill) => {
   const app = getApp()
   const gameStatus = getGameStatus()
 
-  const size = 100;
-  const arcRadius = 15;
+  const size = app.screen.width * 0.07;
+  const arcRadius = size * 0.15;
   const { cooldown } = skill
 
   const skillContainer = new Container();
@@ -37,7 +37,7 @@ const skillCooldown = (skill) => {
     text: `Q`,
     style: new TextStyle({
       fontFamily: 'Arial',
-      fontSize: 36,
+      fontSize: size * 0.375,
       fontStyle: 'italic',
       fontWeight: 'bold',
       fill: new FillGradient({
