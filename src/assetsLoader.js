@@ -27,6 +27,11 @@ const loader = {
       // await Assets.load(new URL('./assets/depth_blur_moby.png', import.meta.url).href),
     ];
 
+    // 獎勵敵人
+    await Assets.load(new URL('./assets/bunny.png', import.meta.url).href)
+    await Assets.load(new URL('./assets/ammo.png', import.meta.url).href)
+    await Assets.load(new URL('./assets/speed.png', import.meta.url).href)
+
     // 爆炸
     await Assets.load('./texture/mc.json');
     for (let i = 0; i < 26; i++) {
