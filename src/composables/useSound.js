@@ -5,7 +5,7 @@ const sounds = {};
 const loadSound = (name, src, volume = 1.0) => {
   return new Promise((resolve, reject) => {
     const sound = new Howl({
-      src: [new URL(src, import.meta.url).href],
+      src: [src],
       volume,
       onload: () => resolve(),
       onloaderror: (id, error) => reject(error),
@@ -14,13 +14,12 @@ const loadSound = (name, src, volume = 1.0) => {
   });
 };
 
-const useSound = async () => {
-  // 在這裡列出你要預載的所有音效
+const preload = async () => {
   await Promise.all([
-    loadSound('shoot', '../assets/sound/mixkit-short-laser-gun-shot-1670.wav', 0.5),
-    loadSound('thunder', '../assets/sound/mixkit-screechy-electified-item-3213.wav', 0.8),
-    loadSound('sonicBoom', '../assets/sound/mixkit-arcade-game-explosion-2759.wav', 0.8),
-    loadSound('getPoint', '../assets/sound/mixkit-player-jumping-in-a-video-game-2043.wav', 0.5),
+    loadSound('shoot', './sound/mixkit-short-laser-gun-shot-1670.wav', 0.5),
+    loadSound('thunder', './sound/mixkit-screechy-electified-item-3213.wav', 0.8),
+    loadSound('sonicBoom', './sound/mixkit-arcade-game-explosion-2759.wav', 0.8),
+    loadSound('getPoint', './sound/mixkit-player-jumping-in-a-video-game-2043.wav', 0.5),
   ]);
 };
 
@@ -34,5 +33,5 @@ const playSound = (name) => {
 
 export default {
   play: playSound,
-  preload: useSound, // 將 preload function 暴露出來
+  preload,
 };
