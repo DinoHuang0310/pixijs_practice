@@ -1,5 +1,6 @@
 import { getGameStatus } from '../../game';
 import useAnimation from '../animations/useAnimation'
+import useSound from '../../composables/useSound'
 
 const createBaseEnemy = ({ body, hp, point, speed, onDeath = null, onDestroy = null }) => {
   const gameStatus = getGameStatus()
@@ -32,6 +33,7 @@ const createBaseEnemy = ({ body, hp, point, speed, onDeath = null, onDestroy = n
         const { explosion } = useAnimation()
         const { x, y, width, height } = enemy.body.getBounds()
         explosion({x: x + width / 2, y: y + height / 2})
+        useSound.play('getPoint')
 
         enemy.remove()
         player.status.setPoint(enemy.point);

@@ -3,6 +3,7 @@ import { Graphics } from 'pixi.js';
 import { getApp, getGameStatus } from '../game';
 import useHitTestRectangle from '../composables/useHitTestRectangle'
 import { toRealSpeed } from '../composables/useMath'
+import useSound from '../composables/useSound'
 
 // 射擊
 export default (parent) => {
@@ -17,6 +18,8 @@ export default (parent) => {
     const y = parent.y - parent.height / 2;
     const size = app.screen.width * 0.003;
     const bulletSpeed = 12;
+
+    useSound.play('shoot');
 
     const createBullet = (x) => {
       const bullet = new Graphics().circle(0, 0, size).fill(0xffffff);

@@ -3,6 +3,7 @@ import { Sprite, Graphics } from 'pixi.js';
 import useAnimation from '../animations/useAnimation'
 import { getApp, getGameStatus } from '../../game'
 import useHitTestRectangle from '../../composables/useHitTestRectangle'
+import useSound from '../../composables/useSound'
 
 export default () => {
   const app = getApp()
@@ -19,6 +20,7 @@ export default () => {
       cooldown: 20,
       execute: (parent) => {
         thunderStrike()
+        useSound.play('thunder')
         const enemies = gameStatus.enemies
         for (let j = enemies.length - 1; j >= 0; j--) {
           enemies[j].setHp(1, parent);
@@ -33,6 +35,7 @@ export default () => {
       cost: 10,
       cooldown: 3,
       execute: async (parent) => {
+        useSound.play('sonicBoom')
         const sonicBoom = new Graphics()
         app.stage.addChild(sonicBoom);
     
