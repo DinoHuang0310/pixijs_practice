@@ -1,5 +1,8 @@
 import useBonus from '../bonus/useBonus'
 import { initSkillCooldown } from '../dashboard';
+import EventEmitter from '../../composables/useEventEmitter'
+
+const playerEmitter  = new EventEmitter()
 
 const status = {
   moveSpeed: 5,
@@ -42,6 +45,16 @@ const status = {
   setWeaponLevel: () => {
     status.weaponLevel ++
   },
+  addBuff: (type, val) => {
+    if (type !== 'buff' && type !== 'debuff') return;
+    status[type].push(val)
+    playerEmitter.emit(`${type}Changed`, [...status[type]]);
+  },
+  removeBuff: (type, val) => {
+    if (type !== 'buff' && type !== 'debuff') return;
+    status[type] = status[type].filter(i => i !== val)
+    playerEmitter.emit(`${type}Changed`, [...status[type]]);
+  },
 }
 
 const getPlayerStatus = () => status
@@ -67,4 +80,5 @@ const resetPlayerStatus = () => {
 export {
   getPlayerStatus,
   resetPlayerStatus,
+  playerEmitter,
 };

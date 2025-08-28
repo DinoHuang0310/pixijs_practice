@@ -8,7 +8,7 @@ import useContain from '../../composables/useContain'
 import useBullet from '../useBullet'
 import useHitTestRectangle from '../../composables/useHitTestRectangle'
 import { getScaleByPercentage, toRealSpeed } from '../../composables/useMath'
-import { getPlayerStatus, resetPlayerStatus } from './status'
+import { getPlayerStatus, resetPlayerStatus, playerEmitter } from './status'
 
 let plane = null;
 
@@ -50,7 +50,7 @@ const createPlayer = () => {
     right: useKeyboard(68),
     down: useKeyboard(83),
     skill: useKeyboard(81),
-    shot: useKeyboard(32),
+    // shot: useKeyboard(32),
     speedUp: useKeyboard(16),
   }
   const computedMoveSpeed = () => {
@@ -58,7 +58,7 @@ const createPlayer = () => {
     const v = [...buff, ...debuff]
       .filter(i => i.type === 'speed')
       .reduce((sum, i) => sum + (i.value || 0), moveSpeed);
-    return toRealSpeed(v)
+    return toRealSpeed(Math.max(v, 1))
   }
   const setVX = () => {
     if (gameStatus.isPause) return;
@@ -97,6 +97,17 @@ const createPlayer = () => {
     if (downActive) newVY += finalSpeed
     plane.vy = newVY
   }
+
+  playerEmitter.on('buffChanged', (buffList) => {
+    setVX();
+    setVY();
+  });
+
+  playerEmitter.on('debuffChanged', (buffList) => {
+    console.log(status.debuff)
+    setVX();
+    setVY();
+  });
   
   const {left, up, right, down, skill, shot, speedUp} = keyboardEvents
   left.press = function() {
