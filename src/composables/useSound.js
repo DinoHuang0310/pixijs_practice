@@ -20,6 +20,8 @@ const preload = async () => {
     loadSound('thunder', './sound/mixkit-screechy-electified-item-3213.wav', 0.8),
     loadSound('sonicBoom', './sound/mixkit-arcade-game-explosion-2759.wav', 0.8),
     loadSound('getPoint', './sound/mixkit-player-jumping-in-a-video-game-2043.wav', 0.5),
+    loadSound('gameover', './sound/mixkit-arcade-game-over-3068.wav', 0.8),
+    loadSound('gamestart', './sound/mixkit-winning-a-coin-video-game-2069.wav', 0.8),
   ]);
 };
 

@@ -4,9 +4,11 @@ import assetsLoader from './assetsLoader'
 import { createPlayer, getPlayer } from './modules/player/usePlayer'
 import {
   createNormalEnemy,
-  createBonusEnemy
+  createBonusEnemy,
+  createSlowTrapEnemy
 } from './modules/enemy'
 // import useAnimation from './modules/animations/useAnimation'
+import useSound from './composables/useSound'
 import useKeyboard from './composables/useKeyboard'
 import useScene from './scene';
 
@@ -26,6 +28,7 @@ const gameStatus = {
     app.ticker.remove(gameStatus.gameLoop);
     gameStatus.gameLoop = null;
     gameStatus.isGameOver = true;
+    useSound.play('gameover')
 
     const player = getPlayer()
     useScene.gameover(player.status)
@@ -41,6 +44,8 @@ async function initGame() {
   if (app) return;
   
   await assetsLoader.preload()
+
+  await useSound.preload()
 
   app = new Application();
 
@@ -94,6 +99,7 @@ const resetGameStatus = () => {
 }
 
 const gameStart = () => {
+  useSound.play('gamestart')
   resetGameStatus()
 
   // 建立玩家
@@ -103,6 +109,8 @@ const gameStart = () => {
   createNormalEnemy()
   const bonusInterval = 10
   createBonusEnemy()
+  const slowInterval = 8
+  // createSlowTrapEnemy()
 
   // 顯示用文字
   const style = new TextStyle({
@@ -143,6 +151,7 @@ const gameStart = () => {
     if (currentTime !== lastShownTime) {
       if (currentTime % enemyInterval === 0) createNormalEnemy();
       if (currentTime % bonusInterval === 0) createBonusEnemy();
+      if (currentTime % slowInterval === 0) createSlowTrapEnemy();
 
       lastShownTime = currentTime;
       timerText.text = `Time: ${currentTime}`;
