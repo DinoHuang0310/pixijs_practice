@@ -1,8 +1,7 @@
 import { Sprite } from 'pixi.js';
 
-import assetsLoader from '../../assetsLoader'
 import { getApp, getGameStatus } from '../../game';
-// import useAnimation from '../animations/useAnimation'
+import { getPlayer } from '../player/usePlayer'
 import createBaseEnemy from './createBaseEnemy'
 import useContain from '../../composables/useContain'
 import {
@@ -11,36 +10,59 @@ import {
   toRealSpeed
 } from '../../composables/useMath'
 
-let index = 0;
-
-const normalEnemy = () => {
+const slowTrapEnemy = () => {
   const app = getApp()
+  const player = getPlayer()
   const gameStatus = getGameStatus()
-  const { alienTextures } = assetsLoader
 
-  // 速度加權
-  const speedGain = Math.min(Math.floor(gameStatus.gameTimer / 15) * 2, 8);
-  const hpGain = Math.min(Math.floor(gameStatus.gameTimer / 15), 7)
+  // 出場時給player掛上緩速
+  const speedDown = { type: 'speed', value: -3 }
+  player.status.addBuff('debuff', speedDown)
+  
+  // 血量加權
+  const hpGain = Math.floor(gameStatus.gameTimer / 15)
 
   const enemy = createBaseEnemy({
-    body: new Sprite(alienTextures[index]),
-    speed: 3 + speedGain,
-    point: 1 + hpGain,
-    hp: 1 + hpGain,
-    onDestroy: () => app.ticker.remove(animate),
+    body: Sprite.from(new URL('../../assets/flowerTop.png', import.meta.url).href),
+    speed: 2,
+    point: 3,
+    hp: 5 + hpGain,
+    onDestroy: () => {
+      app.ticker.remove(animate)
+      if (!gameStatus.isGameOver) {
+        player.status.removeBuff('debuff', speedDown)
+      }
+    },
   })
 
+  enemy.body.scale.set(getScaleByPercentage(enemy.body, 0.08)); // 等比定寬 8%
   enemy.body.x = randomInt(0, Math.floor(app.screen.width));
   enemy.body.y = enemy.body.height * -0.5;
-  enemy.body.scale.set(getScaleByPercentage(enemy.body, 0.08)); // 等比定寬 8%
   enemy.body.anchor.set(0.5)
   
   app.stage.addChild(enemy.body);
   gameStatus.enemies.push(enemy)
 
   let moveSpeedX = randomInt(enemy.speed * -1, enemy.speed)
+
+  let timer = 0
+  let flashInterval = 500
   const animate = () => {
     if (gameStatus.isPause) return;
+    const { deltaMS } = app.ticker
+    if (timer >= flashInterval) {
+      enemy.body.tint = 0x008000
+      setTimeout(() => {
+        // 可能在100毫秒內已經被消滅, 先檢查enemy是否還存在
+        if (enemy.body) {
+          enemy.body.tint = 0xffffff
+        }
+      }, 100);
+
+      timer -= flashInterval
+    } else {
+      timer += deltaMS
+    }
     const { body } = enemy;
     body.x += toRealSpeed(moveSpeedX)
     body.y += toRealSpeed(enemy.speed)
@@ -64,9 +86,7 @@ const normalEnemy = () => {
 
   app.ticker.add(animate);
 
-  index = (index + 1) % alienTextures.length
-
   return enemy
 }
 
-export default normalEnemy
+export default slowTrapEnemy
